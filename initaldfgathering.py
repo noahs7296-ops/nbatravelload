@@ -5,6 +5,7 @@
 from nba_api.stats.static import teams
 from nba_api.stats.endpoints import teamgamelog, teamgamelogs
 import pandas
+from pathlib import Path
 
 # Pulls all games across the entire league for the season if team_id_nullable is omitted
 logs = teamgamelogs.TeamGameLogs(
@@ -84,6 +85,42 @@ for team in gmlogclean2526['home_team'].unique():
         )
         team_games2526[team_name] = team_games2526[team_name].sort_values(by='GAME_DATE', ascending=True)
 
-print(team_games2526)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for team_name, team_df in team_games2526.items():
+        team_df.to_csv(output_dir / f'{team_name}_games_2526.csv', index=False)
+
+# %%
+from math import asin, cos, radians, sin, sqrt
+
+team_games = {
+    file.stem.removesuffix("_games_2526"): pandas.read_csv(file)
+    for file in output_dir.glob("*_games_2526.csv")
+}
+print(f"Loaded {len(team_games)} team CSVs")
+arenas_url = "https://raw.githubusercontent.com/noahs7296-ops/nbatravelload/main/arenas.csv"
+arenas = pandas.read_csv(arenas_url)
+
+for log in team_games.keys():
+    team_games[log]['GAME_DATE'] = pandas.to_datetime(team_games[log]['GAME_DATE'])
+    team_games[log] = team_games[log].merge(arenas, left_on='home_team', right_on='home_team', how='left')
+    team_games[log] = team_games[log].merge(arenas, left_on='prev_home_team', right_on='home_team', how='left', suffixes=('', '_prev'))
+
+def haversine_miles(row):
+    if pandas.isna(row['lat_prev']) or pandas.isna(row['long_prev']):
+        return 0
+
+    lat1, lon1 = radians(row['lat']), radians(row['long'])
+    lat2, lon2 = radians(row['lat_prev']), radians(row['long_prev'])
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    return 3959 * 2 * asin(sqrt(a))
+
+for log in team_games.keys():
+    team_games[log]['distance_miles'] = team_games[log].apply(haversine_miles, axis=1)
+
+print(output_dir.resolve())
+
+
 
 
