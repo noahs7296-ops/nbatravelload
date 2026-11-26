@@ -20,12 +20,12 @@ for team in arenas["home_team"].unique():
     trailing_30daytz_list = []
 
     for index, row in tmlog.iterrows():
-        trailing_7daymiles = 0
-        trailing_14daymiles = 0
-        trailing_30daymiles = 0
-        trailing_7daytz = 0
-        trailing_14daytz = 0
-        trailing_30daytz = 0
+        trailing_7daymiles = row["distance_miles"]
+        trailing_14daymiles = row["distance_miles"]
+        trailing_30daymiles = row["distance_miles"]
+        trailing_7daytz = row["tzs_traveled"]
+        trailing_14daytz = row["tzs_traveled"]
+        trailing_30daytz = row["tzs_traveled"]
         current_date = row["GAME_DATE"]
         for index2, row2 in tmlog.iterrows():
             if row2["GAME_DATE"] < current_date:
